@@ -13,8 +13,9 @@ USO PERMITIDO:
 - Laboratorios de seguridad con permisos explícitos
 - Educación en ciberseguridad
 """
+
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, scrolledtext, messagebox
 from tkinter import scrolledtext
 import re
 import threading
@@ -140,9 +141,35 @@ def obtener_puerta_enlace():
     gateway = os.popen("ip route | grep default | awk '{print $3}'").read().strip()
     return gateway
 
-# ===============================
 # Creación de la Interfaz Gráfica
-# ===============================
+
+class AplicacionPrincipal:
+    """
+    Ventana principal de la aplicacion.
+    """
+
+    def __init__(self, root):
+        """
+        Inicializa la ventana principal.
+        """
+        self.root = root
+        self.root.title("Herramienta de Red: ARP Spoofing")
+        self.root.geometry("1280x720")
+
+        # Muestra la advertencia del inicio
+        self._mostrar_advertencia_inicial()
+
+
+    def _mostrar_advertencia_inicial(self):
+        messagebox.showwarning(
+            "ADVERTENCIA",
+            "Esta herramienta es solo para fines educativos.\n\n",
+            "El uso de ARP spoofing sin autorización es ILEGAL.\n"
+            "Solo úsala en redes propias o con permiso explícito.\n\n"
+            "El autor no se responsabiliza por el uso indebido."
+        )
+
+
 root = tk.Tk()
 root.title("Herramienta Combinada: Extracción de IP y ARP Spoofing")
 
