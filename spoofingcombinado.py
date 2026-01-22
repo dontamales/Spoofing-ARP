@@ -1,3 +1,18 @@
+"""
+Herramienta Combinada: Extracción de IP y ARP Spoofing
+
+ADVERTENCIA LEGAL:
+==================
+Esta herramienta es SOLO para fines educativos y de prueba en redes propias.
+El uso de ARP spoofing en redes sin autorización es ILEGAL y puede resultar
+en consecuencias legales graves. El autor no se responsabiliza por el mal uso
+de este software.
+
+USO PERMITIDO:
+- Pruebas en tu propia red doméstica
+- Laboratorios de seguridad con permisos explícitos
+- Educación en ciberseguridad
+"""
 import tkinter as tk
 from tkinter import ttk
 from tkinter import scrolledtext
