@@ -159,8 +159,18 @@ class AplicacionPrincipal:
         # Muestra la advertencia del inicio
         self._mostrar_advertencia_inicial()
 
+        # Grid de la aplicacion
+        self.root.columnconfigure(0, weight=1)
+        self.root.columnconfigure(1, weight=1)
+        self.root.rowconfigure(0, weight=1)
+        
+        # Crear frame
+        self._crear_frame_extractor()
 
     def _mostrar_advertencia_inicial(self):
+        """
+        Muestra una advertencia antes de mostrar la aplicacion completa
+        """
         messagebox.showwarning(
             "ADVERTENCIA",
             "Esta herramienta es solo para fines educativos.\n\n",
@@ -168,55 +178,92 @@ class AplicacionPrincipal:
             "Solo úsala en redes propias o con permiso explícito.\n\n"
             "El autor no se responsabiliza por el uso indebido."
         )
+        
+    def _crear_frame_extractor(self):
+        """
+        Crea el panel de extraccion de las IPs
+        """
+        frame = ttk.LabelFrame(
+            self.root,
+            text="Extractor de direcciones IP",
+            padding="10"
+        )
+        
+        frame.grid(row=0, column=0, sticky=(tk.N,tk.S,tk.E,tk.W), padx=5, pady=5)
+        
+        ttk.Label(frame, text="Pega aqui tu texto: ").pack(anchor=tk.W)
+        self.input_text = scrolledtext.ScrolledText(frame, width=50, height=15)
+        self.input_text.pack(pady=5, fill=tk.BOTH, expand=True)
+        
+        # Boton
+        ttk.Button(
+            frame,
+            text="Extraer IPs",
+            command=self._procesar_extracccion
+        ).pack(pady=5)
+        
+    def _procesar_extracccion(self):
+        """
+        Del texto dado extrae las IPs
+        """
+        texto = self.input_text.get("1.0", tk.END)
+        ips = extraer_ips(texto)
+        
+        self.output_text.delete("1.0", tk.END)
+        
+        if (ips):
+            self.output_text.insert(tk.END, f"Se encontraron {len(ips)} IPS: \n\n")
+            self.output_text.insert(tk.END, "\n".join(ips))
+        else:
+            self.output_text.insert(tk.END, "No se encontraron IPs validas")
 
+# root = tk.Tk()
+# root.title("Herramienta Combinada: Extracción de IP y ARP Spoofing")
 
-root = tk.Tk()
-root.title("Herramienta Combinada: Extracción de IP y ARP Spoofing")
+# # Configurar la grilla principal para que tenga dos columnas (izquierda y derecha)
+# root.columnconfigure(0, weight=1)
+# root.columnconfigure(1, weight=1)
+# root.rowconfigure(0, weight=1)
 
-# Configurar la grilla principal para que tenga dos columnas (izquierda y derecha)
-root.columnconfigure(0, weight=1)
-root.columnconfigure(1, weight=1)
-root.rowconfigure(0, weight=1)
+# # Frame Izquierdo: Extracción de IP
+# frame_left = ttk.Frame(root, padding="10")
+# frame_left.grid(row=0, column=0, sticky=(tk.N, tk.S, tk.E, tk.W))
 
-# Frame Izquierdo: Extracción de IP
-frame_left = ttk.Frame(root, padding="10")
-frame_left.grid(row=0, column=0, sticky=(tk.N, tk.S, tk.E, tk.W))
+# label_input = ttk.Label(frame_left, text="Ingresa o pega los datos:")
+# label_input.grid(row=0, column=0, sticky=tk.W)
 
-label_input = ttk.Label(frame_left, text="Ingresa o pega los datos:")
-label_input.grid(row=0, column=0, sticky=tk.W)
+# input_text = scrolledtext.ScrolledText(frame_left, width=50, height=15)
+# input_text.grid(row=1, column=0, pady=5)
 
-input_text = scrolledtext.ScrolledText(frame_left, width=50, height=15)
-input_text.grid(row=1, column=0, pady=5)
+# button_extract = ttk.Button(frame_left, text="Extraer IPs", command=procesar_texto)
+# button_extract.grid(row=2, column=0, pady=5)
 
-button_extract = ttk.Button(frame_left, text="Extraer IPs", command=procesar_texto)
-button_extract.grid(row=2, column=0, pady=5)
+# label_output = ttk.Label(frame_left, text="Direcciones IP extraídas:")
+# label_output.grid(row=3, column=0, sticky=tk.W)
 
-label_output = ttk.Label(frame_left, text="Direcciones IP extraídas:")
-label_output.grid(row=3, column=0, sticky=tk.W)
+# output_text = scrolledtext.ScrolledText(frame_left, width=50, height=15)
+# output_text.grid(row=4, column=0, pady=5)
 
-output_text = scrolledtext.ScrolledText(frame_left, width=50, height=15)
-output_text.grid(row=4, column=0, pady=5)
+# # Frame Derecho: ARP Spoofing
+# frame_right = ttk.Frame(root, padding="10")
+# frame_right.grid(row=0, column=1, sticky=(tk.N, tk.S, tk.E, tk.W))
 
-# Frame Derecho: ARP Spoofing
-frame_right = ttk.Frame(root, padding="10")
-frame_right.grid(row=0, column=1, sticky=(tk.N, tk.S, tk.E, tk.W))
+# label_ips_objetivo = ttk.Label(frame_right, text="Ingrese la lista de IP objetivo (una por línea):")
+# label_ips_objetivo.grid(row=0, column=0, sticky=tk.W)
 
-label_ips_objetivo = ttk.Label(frame_right, text="Ingrese la lista de IP objetivo (una por línea):")
-label_ips_objetivo.grid(row=0, column=0, sticky=tk.W)
+# entrada_ips = tk.Text(frame_right, width=30, height=10)
+# entrada_ips.grid(row=1, column=0, pady=5)
 
-entrada_ips = tk.Text(frame_right, width=30, height=10)
-entrada_ips.grid(row=1, column=0, pady=5)
+# button_iniciar = ttk.Button(frame_right, text="Iniciar ARP Spoofing", command=iniciar_spoofing)
+# button_iniciar.grid(row=2, column=0, pady=5)
 
-button_iniciar = ttk.Button(frame_right, text="Iniciar ARP Spoofing", command=iniciar_spoofing)
-button_iniciar.grid(row=2, column=0, pady=5)
+# button_detener = ttk.Button(frame_right, text="Cancelar ARP Spoofing", command=detener_spoofing)
+# button_detener.grid(row=3, column=0, pady=5)
 
-button_detener = ttk.Button(frame_right, text="Cancelar ARP Spoofing", command=detener_spoofing)
-button_detener.grid(row=3, column=0, pady=5)
+# widget_salida = scrolledtext.ScrolledText(frame_right, width=50, height=15)
+# widget_salida.grid(row=4, column=0, pady=5)
 
-widget_salida = scrolledtext.ScrolledText(frame_right, width=50, height=15)
-widget_salida.grid(row=4, column=0, pady=5)
+# # Inicializar la puerta de enlace automáticamente
+# ip_puerta_enlace = obtener_puerta_enlace()
 
-# Inicializar la puerta de enlace automáticamente
-ip_puerta_enlace = obtener_puerta_enlace()
-
-root.mainloop()
+# root.mainloop()
