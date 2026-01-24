@@ -166,6 +166,8 @@ class AplicacionPrincipal:
         
         # Crear frame
         self._crear_frame_extractor()
+        
+        self.arp_manager = ARPManager(self.arp_output)
 
     def _mostrar_advertencia_inicial(self):
         """
@@ -216,6 +218,39 @@ class AplicacionPrincipal:
             self.output_text.insert(tk.END, "\n".join(ips))
         else:
             self.output_text.insert(tk.END, "No se encontraron IPs validas")
+            
+    def _iniciar_arp(self):
+        """
+        Inicia el ataque
+        """
+        texto_ips = self.arp_input.get("1.0", tk.END)
+        lista_ips = [ip.strip() for ip in texto_ips.splitlines() if (ip.strip())]
+        
+        # Validar las ips
+        ips_validas = [ip for ip in lista_ips if validar_ip(ip)]
+        ips_invalidas = set(lista_ips) - set(ips_validas)
+        
+        
+        if (ips_invalidas):
+            messagebox.showwarning(
+                "IPs Invalidas",
+                f"Se ignoraran estas IPs: \n: {', '.join(ips_invalidas)}"
+            )
+            
+        if (ips_validas):
+            self._arp_manager.iniciar_ataque(ips_validas)
+        else:
+            messagebox.showerror(
+                "Error",
+                f"No hay IPs validas para atacar"
+            )
+    
+    def _detener_arp (self):
+        """
+        Detiene el ataque ARP
+        """
+        self.arp_manager.detener_ataque()
+            
 
 # root = tk.Tk()
 # root.title("Herramienta Combinada: Extracción de IP y ARP Spoofing")
