@@ -22,29 +22,30 @@ import threading
 import time
 import uuid
 import os
-from scapy.all import ARP, Ether, send, srp
+from scapy.all import ARP, Ether, send, srp, conf
 
-# ===============================
-# Funcionalidad de Extracción de IP
-# ===============================
-def extraer_ips(texto):
+# Utilidades
+
+def validar_ip (ip: str) -> bool:
     """
-    Utiliza una expresión regular para extraer todas las direcciones IPv4 del texto.
+    Valida si una cadena es una ip valida
+    """
+    patron = r'^(\d{1,3}\.){3}\d{1,3}$'
+    if not re.match(patron, ip):
+        return False
+    
+    octetos = ip.split('.')
+    return all(0 <= int(octeto) <= 255 for octeto in octetos)
+    
+
+def extraer_ips(texto: str) -> list[str]:
+    """
+    Utiliza regex para extraer todas las direcciones ipv4
+    y las valida
     """
     patron = r'\b(?:\d{1,3}\.){3}\d{1,3}\b'
-    return re.findall(patron, texto)
-
-def procesar_texto():
-    """
-    Toma el contenido del área de texto de entrada, extrae las IPs y las muestra en el área de salida.
-    """
-    texto = input_text.get("1.0", tk.END)
-    ips = extraer_ips(texto)
-    output_text.delete("1.0", tk.END)
-    if ips:
-        output_text.insert(tk.END, "\n".join(ips))
-    else:
-        output_text.insert(tk.END, "No se encontraron direcciones IP.")
+    ips_encontradas = re.findall(patron, texto)
+    return [ip for ip in ips_encontradas if validar_ip(ip)]
 
 # ===============================
 # Funcionalidad de ARP Spoofing
@@ -166,8 +167,9 @@ class AplicacionPrincipal:
         
         # Crear frame
         self._crear_frame_extractor()
+        self._crear_frame_arp()
         
-        self.arp_manager = ARPManager(self.arp_output)
+        # self.arp_manager = ARPManager(self.arp_output)
 
     def _mostrar_advertencia_inicial(self):
         """
@@ -175,7 +177,7 @@ class AplicacionPrincipal:
         """
         messagebox.showwarning(
             "ADVERTENCIA",
-            "Esta herramienta es solo para fines educativos.\n\n",
+            "Esta herramienta es solo para fines educativos.\n\n"
             "El uso de ARP spoofing sin autorización es ILEGAL.\n"
             "Solo úsala en redes propias o con permiso explícito.\n\n"
             "El autor no se responsabiliza por el uso indebido."
@@ -197,12 +199,68 @@ class AplicacionPrincipal:
         self.input_text = scrolledtext.ScrolledText(frame, width=50, height=15)
         self.input_text.pack(pady=5, fill=tk.BOTH, expand=True)
         
+        # Frame para botones
+        btn_frame = ttk.Frame(frame)
+        btn_frame.pack(pady=10)
+        
         # Boton
         ttk.Button(
-            frame,
+            btn_frame,
             text="Extraer IPs",
             command=self._procesar_extracccion
         ).pack(pady=5)
+        
+        # Botn de limpiar
+        ttk.Button(
+            btn_frame,
+            text="Limpiar",
+            command=self._limpiar_entrada
+        ).pack(side=tk.LEFT, padx=5)
+                
+    def _crear_frame_arp(self):
+        """
+        Crea el frame del arp 
+        """
+        
+        frame = ttk.LabelFrame(
+            self.root,
+            text="ARP Spoofing",
+            padding="10"
+        )
+        
+        frame.grid(row=0, column=1, sticky=(tk.N, tk.S, tk.E, tk.W), padx=5, pady=5)
+        
+        # Entrada de IPs
+        ttk.Label(frame, text="IPs objetivo: ").pack(anchor=tk.W)
+        self.arp_input = scrolledtext.ScrolledText(frame, width=40, height=10)
+        self.arp_input.pack(pady=5, fill=tk.BOTH, expand=False)
+        
+        # Botones
+        btn_frame = ttk.Frame(frame)
+        btn_frame.pack(pady=5)
+        
+        ttk.Button(
+            btn_frame,
+            text="▶ Iniciar Ataque",
+            command=self._iniciar_arp
+        ).pack(side=tk.LEFT, padx=5)
+        
+        ttk.Button(
+            btn_frame,
+            text="⏹ Detener",
+            command=self._detener_arp
+        ).pack(side=tk.LEFT, padx=5)
+        
+        ttk.Button(
+            btn_frame,
+            text="Limpiar IPs",
+            command=self._limpiar_ips_objetivo
+        ).pack(side=tk.LEFT, padx=5)
+        
+        # Salida
+        ttk.Label(frame, text="Log de actividad:").pack(anchor=tk.W)
+        self.arp_output = scrolledtext.ScrolledText(frame, width=50, height=15)
+        self.arp_output.pack(pady=5, fill=tk.BOTH, expand=True)
         
     def _procesar_extracccion(self):
         """
@@ -250,55 +308,25 @@ class AplicacionPrincipal:
         Detiene el ataque ARP
         """
         self.arp_manager.detener_ataque()
-            
+        
+    def _limpiar_entrada(self):
+        """
+        Limpia el área de entrada de texto.
+        """
+        self.input_text.delete("1.0", tk.END)
+        
+    def _limpiar_ips_objetivo(self):
+        """
+        Limpia el campo de IPs objetivo.
+        """
+        self.arp_input.delete("1.0", tk.END)
+        
+# Funcion main
 
-# root = tk.Tk()
-# root.title("Herramienta Combinada: Extracción de IP y ARP Spoofing")
-
-# # Configurar la grilla principal para que tenga dos columnas (izquierda y derecha)
-# root.columnconfigure(0, weight=1)
-# root.columnconfigure(1, weight=1)
-# root.rowconfigure(0, weight=1)
-
-# # Frame Izquierdo: Extracción de IP
-# frame_left = ttk.Frame(root, padding="10")
-# frame_left.grid(row=0, column=0, sticky=(tk.N, tk.S, tk.E, tk.W))
-
-# label_input = ttk.Label(frame_left, text="Ingresa o pega los datos:")
-# label_input.grid(row=0, column=0, sticky=tk.W)
-
-# input_text = scrolledtext.ScrolledText(frame_left, width=50, height=15)
-# input_text.grid(row=1, column=0, pady=5)
-
-# button_extract = ttk.Button(frame_left, text="Extraer IPs", command=procesar_texto)
-# button_extract.grid(row=2, column=0, pady=5)
-
-# label_output = ttk.Label(frame_left, text="Direcciones IP extraídas:")
-# label_output.grid(row=3, column=0, sticky=tk.W)
-
-# output_text = scrolledtext.ScrolledText(frame_left, width=50, height=15)
-# output_text.grid(row=4, column=0, pady=5)
-
-# # Frame Derecho: ARP Spoofing
-# frame_right = ttk.Frame(root, padding="10")
-# frame_right.grid(row=0, column=1, sticky=(tk.N, tk.S, tk.E, tk.W))
-
-# label_ips_objetivo = ttk.Label(frame_right, text="Ingrese la lista de IP objetivo (una por línea):")
-# label_ips_objetivo.grid(row=0, column=0, sticky=tk.W)
-
-# entrada_ips = tk.Text(frame_right, width=30, height=10)
-# entrada_ips.grid(row=1, column=0, pady=5)
-
-# button_iniciar = ttk.Button(frame_right, text="Iniciar ARP Spoofing", command=iniciar_spoofing)
-# button_iniciar.grid(row=2, column=0, pady=5)
-
-# button_detener = ttk.Button(frame_right, text="Cancelar ARP Spoofing", command=detener_spoofing)
-# button_detener.grid(row=3, column=0, pady=5)
-
-# widget_salida = scrolledtext.ScrolledText(frame_right, width=50, height=15)
-# widget_salida.grid(row=4, column=0, pady=5)
-
-# # Inicializar la puerta de enlace automáticamente
-# ip_puerta_enlace = obtener_puerta_enlace()
-
-# root.mainloop()
+def main():
+    root = tk.Tk()
+    app = AplicacionPrincipal(root)
+    root.mainloop()
+    
+if __name__ == "__main__":
+    main()
