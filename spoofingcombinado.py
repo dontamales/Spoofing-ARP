@@ -22,7 +22,7 @@ import threading
 import time
 import uuid
 import os
-from scapy.all import ARP, Ether, send, srp
+from scapy.all import ARP, Ether, send, srp, conf
 
 # ===============================
 # Funcionalidad de Extracción de IP
@@ -166,8 +166,9 @@ class AplicacionPrincipal:
         
         # Crear frame
         self._crear_frame_extractor()
+        self._crear_frame_arp()
         
-        self.arp_manager = ARPManager(self.arp_output)
+        # self.arp_manager = ARPManager(self.arp_output)
 
     def _mostrar_advertencia_inicial(self):
         """
@@ -175,7 +176,7 @@ class AplicacionPrincipal:
         """
         messagebox.showwarning(
             "ADVERTENCIA",
-            "Esta herramienta es solo para fines educativos.\n\n",
+            "Esta herramienta es solo para fines educativos.\n\n"
             "El uso de ARP spoofing sin autorización es ILEGAL.\n"
             "Solo úsala en redes propias o con permiso explícito.\n\n"
             "El autor no se responsabiliza por el uso indebido."
@@ -197,12 +198,68 @@ class AplicacionPrincipal:
         self.input_text = scrolledtext.ScrolledText(frame, width=50, height=15)
         self.input_text.pack(pady=5, fill=tk.BOTH, expand=True)
         
+        # Frame para botones
+        btn_frame = ttk.Frame(frame)
+        btn_frame.pack(pady=10)
+        
         # Boton
         ttk.Button(
-            frame,
+            btn_frame,
             text="Extraer IPs",
             command=self._procesar_extracccion
         ).pack(pady=5)
+        
+        # Botn de limpiar
+        ttk.Button(
+            btn_frame,
+            text="Limpiar",
+            command=self._limpiar_entrada
+        ).pack(side=tk.LEFT, padx=5)
+                
+    def _crear_frame_arp(self):
+        """
+        Crea el frame del arp 
+        """
+        
+        frame = ttk.LabelFrame(
+            self.root,
+            text="ARP Spoofing",
+            padding="10"
+        )
+        
+        frame.grid(row=0, column=1, sticky=(tk.N, tk.S, tk.E, tk.W), padx=5, pady=5)
+        
+        # Entrada de IPs
+        ttk.Label(frame, text="IPs objetivo: ").pack(anchor=tk.W)
+        self.arp_input = scrolledtext.ScrolledText(frame, width=40, height=10)
+        self.arp_input.pack(pady=5, fill=tk.BOTH, expand=False)
+        
+        # Botones
+        btn_frame = ttk.Frame(frame)
+        btn_frame.pack(pady=5)
+        
+        ttk.Button(
+            btn_frame,
+            text="▶ Iniciar Ataque",
+            command=self._iniciar_arp
+        ).pack(side=tk.LEFT, padx=5)
+        
+        ttk.Button(
+            btn_frame,
+            text="⏹ Detener",
+            command=self._detener_arp
+        ).pack(side=tk.LEFT, padx=5)
+        
+        ttk.Button(
+            btn_frame,
+            text="Limpiar IPs",
+            command=self._limpiar_ips_objetivo
+        ).pack(side=tk.LEFT, padx=5)
+        
+        # Salida
+        ttk.Label(frame, text="Log de actividad:").pack(anchor=tk.W)
+        self.arp_output = scrolledtext.ScrolledText(frame, width=50, height=15)
+        self.arp_output.pack(pady=5, fill=tk.BOTH, expand=True)
         
     def _procesar_extracccion(self):
         """
@@ -250,6 +307,28 @@ class AplicacionPrincipal:
         Detiene el ataque ARP
         """
         self.arp_manager.detener_ataque()
+        
+    def _limpiar_entrada(self):
+        """
+        Limpia el área de entrada de texto.
+        """
+        self.input_text.delete("1.0", tk.END)
+        
+    def _limpiar_ips_objetivo(self):
+        """
+        Limpia el campo de IPs objetivo.
+        """
+        self.arp_input.delete("1.0", tk.END)
+        
+# Funcion main
+
+def main():
+    root = tk.Tk()
+    app = AplicacionPrincipal(root)
+    root.mainloop()
+    
+if __name__ == "__main__":
+    main()
             
 
 # root = tk.Tk()
