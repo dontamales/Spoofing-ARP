@@ -22,7 +22,16 @@ import threading
 import time
 import uuid
 import os
+import logging
+from typing import Optional
 from scapy.all import ARP, Ether, send, srp, conf
+
+# Configuración de logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 # Utilidades
 
@@ -61,12 +70,51 @@ class ARPManager:
         
     def _obtener_mac_local(self) -> str:
         """
-        Obtiene la dirección MAC de la interfaz local
+        Obtiene la direccion MAC
         """
         mac = uuid.getnode()
         mac_str = ':'.join(['{:02x}'.format((mac >> i) & 0xff) 
                            for i in range(0, 8*6, 8)][::-1])
         return mac_str
+    
+    def _obtener_puerta_enlace(self) -> Optional[str]:
+        """
+        Detecta el gateway de la red
+        """
+        # Este comando extrae la IP del gateway (Linux)
+        cmd = "ip route | grep default | awk '{print $3}'"
+        
+        gateway = os.popen(cmd).read().strip()
+        
+        if validar_ip(gateway):
+            self._log(f"Puerta de enlace detectada: {gateway}")
+            return gateway
+        else:
+            self._log("No se pudo detectar la puerta de enlace automáticamente", "ERROR")
+            return None
+    
+    def _log(self, mensaje: str, nivel: str = "INFO"):
+        """
+        Registra un mensaje en el widget de salida
+        
+        Args:
+            mensaje: Mensaje a registrar
+            nivel: Nivel de severidad (INFO, WARNING, ERROR)
+        """
+        timestamp = time.strftime("%H:%M:%S")
+        formatted_msg = f"[{timestamp}] {nivel}: {mensaje}\n"
+        
+        self.output_widget.insert(tk.END, formatted_msg)
+        self.output_widget.see(tk.END)
+        
+        if nivel == "ERROR":
+            logger.error(mensaje)
+        elif nivel == "WARNING":
+            logger.warning(mensaje)
+        else:
+            logger.info(mensaje)
+        
+        
 
 # ip_puerta_enlace = None
 # mac_atacante = ':'.join(['{:02x}'.format((uuid.getnode() >> i) & 0xff) for i in range(0, 8*6, 8)][::-1])
